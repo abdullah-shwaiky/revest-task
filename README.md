@@ -32,7 +32,7 @@ To run the solution locally, follow these steps:
 
 1. Clone the repository:
    ```bash
-   git clone <https://github.com/abdullah-shwaiky/revest-task.git>
+   git clone https://github.com/abdullah-shwaiky/revest-task.git
    cd revest-task
    ```
 2. Make sure Docker and Docker Compose are installed and functional.
