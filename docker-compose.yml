@@ -1,0 +1,94 @@
+version: "3.8"
+
+services:
+  postgres:
+    container_name: postgres_container
+    image: postgres
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: revestPG
+      POSTGRES_PASSWORD: Revest_Admin2024
+    ports:
+      - "5432:5432"
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "pg_isready",
+          "-U",
+          "revestPG",
+          "-d",
+          "postgres",
+          "-h",
+          "localhost",
+        ]
+      interval: 10s
+      retries: 5
+      timeout: 5s
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - app-network
+
+  redis:
+    image: redis:alpine
+    container_name: redis_container
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      retries: 5
+      timeout: 5s
+
+  django:
+    build: ./docker/recommender
+    container_name: django-container
+    environment:
+      - DATABASE_URL=postgres://revestPG:Revest_Admin2024@postgres:5432/postgres
+      - REDIS_URL=redis://redis:6379/0 # Add Redis URL environment variable
+    depends_on:
+      - postgres
+      - mongodb
+      - redis # Ensure Django waits for Redis
+    ports:
+      - "8000:8000"
+    networks:
+      - app-network
+    volumes:
+      - ./wait-for-it.sh:/wait-for-it.sh
+  streamlit:
+    build: ./docker/interface
+    container_name: streamlit-container
+    environment:
+      - DATABASE_URL=postgres://postgres:Revest_Admin2024@postgres:5432/postgres
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - postgres
+      - mongodb
+      - redis
+    ports:
+      - "8500:8500"
+    networks:
+      - app-network
+    volumes:
+      - ./wait-for-it.sh:/wait-for-it.sh
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mongo_data:
